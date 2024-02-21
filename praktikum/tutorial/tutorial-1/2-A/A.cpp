@@ -19,6 +19,7 @@ A::~A() {
 A& A::operator=(const A& other) {
     cout << "cassign " << data << " = " << other.data << endl;
     data = other.data;
+    return *this;
 }
 
 void A::show() {
