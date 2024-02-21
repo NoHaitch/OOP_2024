@@ -1,5 +1,5 @@
 <div align="center">
-<h1>Mata Kuliah IF2110 Algoritma dan Stuktur Data 2023</h1>
+<h1>Mata Kuliah IF2210 Pemograman Berorientasi Objek 2024</h1>
 <b>Semua program, materi, dan praktikum Mata Kuliah IF2210 Pemograman Berorientasi Objek</b>
 <br>
 <h3> Praktikum Menggunakan Bahasa C dengan Basis ADT (Abstract Data Type) </h3>
