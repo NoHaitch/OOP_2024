@@ -12,7 +12,7 @@ public class KompleksMain {
         Kompleks product = a.multiply(b);
         System.out.println("Multiplication result: " + product.getReal() + " + " + product.getImaginer() + "i");
         
-        Kompleks multiplied = a.operator(2);
+        Kompleks multiplied = a.multiply(2);
         System.out.println("Multiplication with constant result: " + multiplied.getReal() + " + " + multiplied.getImaginer() + "i");
         
         System.out.println("Total Kompleks instances: " + Kompleks.countKompleksInstance());
