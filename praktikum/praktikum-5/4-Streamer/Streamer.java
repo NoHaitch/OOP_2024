@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.Collections;
 
 public class Streamer<T> implements IStreamer<T> {
@@ -20,22 +21,18 @@ public class Streamer<T> implements IStreamer<T> {
 
     // mengembalikan stream baru yang berisi hasil kembalian fungsi mapper untuk setiap elemen dalam stream
     public <R> IStreamer<R> map(Function<T, R> mapper) {
-        List<R> mapped = new ArrayList<>(data.size());
-        for(T elmt: data){
-            mapped.add(mapper.apply(elmt));
-        }
-        return new Streamer<>(mapped);
+        List<R> mappedData = data.stream()
+                .map(mapper::apply)
+                .collect(Collectors.toList());
+        return new Streamer<>(mappedData);
     }
 
     // melakukan filter terhadap elemen dalam stream, jika fungsi predicate mengembalikan true, elemen tersebut akan dimasukkan ke dalam stream baru, jika false, elemen tersebut akan diabaikan
     public IStreamer<T> filter(Function<T, Boolean> predicate) {
-        List<T> filtered = new ArrayList<>(data.size());
-        for(T elmt: data){
-            if(predicate.apply(elmt)){
-                filtered.add(elmt);
-            }
-        }
-        return new Streamer<>(filtered);
+        List<T> filteredData = data.stream()
+                .filter(predicate::apply)
+                .collect(Collectors.toList());
+        return new Streamer<>(filteredData);    
     }
 
     // mengumpulkan semua elemen dalam stream menjadi satu nilai
@@ -46,32 +43,28 @@ public class Streamer<T> implements IStreamer<T> {
     // stream dan mengembalikan hasil reduksi setelah elemen stream tersebut di proses Contoh:
     // stream.reduce(0.0, (Double acc) -> (Double item) -> acc + item);
     public <R> R reduce(R initialValue, Function<R, Function<T, R>> reducer) {
-        for( T elmt : data){
-            Function<T, R> temp = reducer.apply(initialValue);
-            initialValue = temp.apply(elmt);
+        R acc = initialValue;
+        for (T item : data) {
+            acc = reducer.apply(acc).apply(item);
         }
-        return initialValue;
+        return acc;
     }
 
     // panggil fungsi mapper untuk setiap elemen dalam stream, kemudian gabungkan hasilnya menjadi satu stream baru
     // misalkan stream berisi [1, 2, 3] dan mapper mengembalikan stream baru [1, 2, 3] untuk setiap elemen, maka hasilnya adalah stream baru [1, 2, 3, 1, 2, 3, 1, 2, 3]
     public <R> IStreamer<R> flatMap(Function<T, IStreamer<R>> mapper) {
-        List<R> result = new ArrayList<>(data.size());
-        for(T elmt: data){
-            IStreamer<R> mapped = mapper.apply(elmt);
-            for(R mappedElmt: mapped.collect()){
-                result.add(mappedElmt);
-            }
-        }
-        return new Streamer<>(result);
+        List<R> flatMappedData = data.stream()
+                .flatMap(item -> mapper.apply(item).collect().stream())
+                .collect(Collectors.toList());
+        return new Streamer<>(flatMappedData);
     }
 
     // mengembalikan elemen pertama dalam stream yang memenuhi kondisi dari fungsi predicate
     // jika tidak ada elemen yang memenuhi kondisi, kembalikan null
     public T findFirst(Function<T, Boolean> predicate) {
-        for(int i = 0; i < data.size(); i++){
-            if(predicate.apply(data.get(i))){
-                return data.get(i);
+        for (T item : data) {
+            if (predicate.apply(item)) {
+                return item;
             }
         }
         return null;
@@ -80,9 +73,10 @@ public class Streamer<T> implements IStreamer<T> {
     // mengembalikan elemen terakhir dalam stream yang memenuhi kondisi dari fungsi predicate
     // jika tidak ada elemen yang memenuhi kondisi, kembalikan null
     public T findLast(Function<T, Boolean> predicate) {
-        for(int i = data.size()-1; i >= 0; i--){
-            if(predicate.apply(data.get(i))){
-                return data.get(i);
+        for (int i = data.size() - 1; i >= 0; i--) {
+            T item = data.get(i);
+            if (predicate.apply(item)) {
+                return item;
             }
         }
         return null;
@@ -91,67 +85,64 @@ public class Streamer<T> implements IStreamer<T> {
     // mengembalikan elemen pertama dalam stream
     // jika stream kosong, kembalikan null
     public T head() {
-        if(data.isEmpty()){
+        if (isEmpty()) {
             return null;
+        } else {
+            return data.get(0);
         }
-        
-        return data.get(0);
     }
 
     // mengembalikan stream baru yang berisi semua elemen dalam stream kecuali elemen pertama
     // jika stream kosong, kembalikan stream kosong
     public IStreamer<T> tail() {
-        if(data.isEmpty()){
+        if (isEmpty()) {
             return new Streamer<>(new ArrayList<>());
         }
-
         return new Streamer<>(data.subList(1, data.size()));
     }
 
     // mengembalikan elemen terakhir dalam stream
     // jika stream kosong, kembalikan null
     public T last() {
-        if(data.isEmpty()){
-            return null;
+    if (isEmpty()) {
+        return null;
+    } else {
+        for (int i = 0; i < count(); i++) {
+            if (i == count() - 1) {
+                return data.get(i);
+            }
         }
-        
-        return data.get(data.size()-1);
+        return null;
+    }
     }
 
     // mengembalikan stream baru yang berisi semua elemen dalam stream kecuali elemen terakhir
     // jika stream kosong, kembalikan stream kosong
     public IStreamer<T> init() {
-        if(data.isEmpty()){
-            return new Streamer<>(null);
+        if (isEmpty()) {
+            return new Streamer<>(new ArrayList<>());
         }
-
-        return new Streamer<>(data.subList(0, data.size()-2));
+        return new Streamer<>(data.subList(0, data.size() - 1));
     }
 
     // mengembalikan stream baru yang berisi n elemen pertama dalam stream
     // jika n lebih besar dari jumlah elemen dalam stream, ambil semua elemen dalam stream
     public IStreamer<T> takeFirst(int n) {
-        if(n >= data.size()){
-            return new Streamer<>(data);
-        } else{
-            return new Streamer<>(data.subList(0, n));
-        }
+        int limit = Math.min(n, count());
+        return new Streamer<>(data.subList(0, limit));
     }
 
     // mengembalikan stream baru yang berisi n elemen terakhir dalam stream
     // contoh: [1, 2, 3, 4, 5].takeLast(3) -> [3, 4, 5]
     // jika n lebih besar dari jumlah elemen dalam stream, ambil semua elemen dalam stream
     public IStreamer<T> takeLast(int n) {
-        if(n >= data.size()){
-            return new Streamer<>(data);
-        } else{
-            return new Streamer<>(data.subList(data.size()-n, data.size()));
-        }
+        int startIndex = Math.max(data.size() - n, 0);
+        return new Streamer<>(data.subList(startIndex, data.size()));
     }
 
     // mengembalikan true jika stream kosong, false jika tidak
     public Boolean isEmpty() {
-        return data.isEmpty();
+        return count() == 0;
     }
 
     // mengembalikan jumlah elemen dalam stream
@@ -161,27 +152,17 @@ public class Streamer<T> implements IStreamer<T> {
 
     // mengembalikan true jika stream mengandung minimal satu elemen yang memenuhi kondisi dari fungsi predicate, false jika tidak
     public Boolean some(Function<T, Boolean> predicate) {
-        for(T elmt: data){
-            if(predicate.apply(elmt)){
-                return true;
-            }
-        }
-        return false;
+        return data.stream().anyMatch(predicate::apply);
     }
 
     // mengembalikan true jika semua elemen dalam stream memenuhi kondisi dari fungsi predicate, false jika tidak
     public Boolean every(Function<T, Boolean> predicate) {
-        for(T elmt: data){
-            if(!predicate.apply(elmt)){
-                return false;
-            }
-        }
-        return true;
+        return data.stream().allMatch(predicate::apply);
     }
 
     // mengembalikan list yang berisi semua elemen dalam stream
     public List<T> collect() {
-        return data;
+        return new ArrayList<>(data);
     }
 
     // membalik urutan elemen dalam stream
